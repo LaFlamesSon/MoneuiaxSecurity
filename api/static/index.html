@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MVP Visual Search</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+      input[type=file], input[type=url] { width: 100%; padding: .5rem; }
+      button { padding: .5rem 1rem; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+      .result { border: 1px solid #eee; border-radius: 6px; padding: .5rem; }
+      .muted { color: #666; font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <h1>MVP Visual Search</h1>
+
+    <div class="card">
+      <h3>Upload</h3>
+      <input id="upload" type="file" accept="image/*" />
+      <button onclick="doUpload()">Send</button>
+      <div id="uploadStatus" class="muted"></div>
+    </div>
+
+    <div class="card">
+      <h3>Ingest URL</h3>
+      <input id="ingestUrl" type="url" placeholder="https://example.com/image.jpg" />
+      <button onclick="doIngestUrl()">Fetch</button>
+      <div id="ingestStatus" class="muted"></div>
+    </div>
+
+    <div class="card">
+      <h3>Search</h3>
+      <input id="searchFile" type="file" accept="image/*" />
+      <button onclick="doSearch()">Search</button>
+    </div>
+
+    <div id="results" class="grid"></div>
+
+    <script>
+      async function doUpload() {
+        const f = document.getElementById('upload').files[0];
+        if (!f) return;
+        const fd = new FormData();
+        fd.append('file', f);
+        const r = await fetch('/upload', { method: 'POST', body: fd });
+        const j = await r.json();
+        document.getElementById('uploadStatus').textContent = JSON.stringify(j);
+      }
+      async function doIngestUrl() {
+        const url = document.getElementById('ingestUrl').value;
+        const r = await fetch('/ingest-url', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url }) });
+        const j = await r.json();
+        document.getElementById('ingestStatus').textContent = JSON.stringify(j);
+      }
+      async function doSearch() {
+        const f = document.getElementById('searchFile').files[0];
+        if (!f) return;
+        const fd = new FormData();
+        fd.append('file', f);
+        const r = await fetch('/search?k=6', { method: 'POST', body: fd });
+        const j = await r.json();
+        const container = document.getElementById('results');
+        container.innerHTML = '';
+        for (const it of j.results || []) {
+          const el = document.createElement('div');
+          el.className = 'result';
+          el.innerHTML = `
+            <div><img src="${it.thumb_url || it.original_url}" style="max-width:100%;height:auto"/></div>
+            <div class="muted">score: ${it.score.toFixed(4)}</div>
+            <div><a href="${it.original_url}" target="_blank">open</a></div>
+          `;
+          container.appendChild(el);
+        }
+      }
+    </script>
+  </body>
+  </html>
+
+
